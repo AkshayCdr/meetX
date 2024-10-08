@@ -1,9 +1,12 @@
 import { LinksFunction } from "@remix-run/node";
 import { Links, Meta, Outlet, Scripts } from "@remix-run/react";
-import stylesheet from "./tailwind.css?url";
+import { cssBundleHref } from "@remix-run/css-bundle"; // Ensure this line is added
+
+import styles from "./tailwind.css?url";
 
 export const links: LinksFunction = () => [
-    { rel: "stylesheet", href: stylesheet },
+    { rel: "stylesheet", href: styles },
+    ...(cssBundleHref ? [{ rel: "stylesheet", href: cssBundleHref }] : []),
 ];
 
 export default function App() {
@@ -15,11 +18,6 @@ export default function App() {
                 <Links />
             </head>
             <body>
-                <section className="bg-slate-500 w-fit h-fit">
-                    <h1 className="text-3xl font-bold underlined ">
-                        Hello world!
-                    </h1>
-                </section>
                 <Outlet />
 
                 <Scripts />
