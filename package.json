@@ -4,11 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev":"npx remix vite:dev",
-    "build":"npx remix vite:build",
-    "serve":"node server.js",
-    "server":"npm install && npm run build"
+    "test": "vitest",
+    "dev": "npx remix vite:dev",
+    "build": "npx remix vite:build",
+    "serve": "node server.js",
+    "server": "npm install && npm run build"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "isbot": "^4.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "socket.io-client": "^4.8.0",
     "typescript": "^5.6.2"
   },
   "devDependencies": {
@@ -32,7 +33,8 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.13",
-    "vite": "^5.4.8"
+    "vite": "^5.4.8",
+    "vitest": "^2.1.2"
   },
   "type": "module"
 }
