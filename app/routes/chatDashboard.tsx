@@ -17,26 +17,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const err = isValidRoomId(roomId);
     if (err) return json(err);
 
-    // if (isNewMeeting) {
-    //     createRoom(roomId);
-    // }
-
-    // if (isJoinMeet) {
-    //     joinRoom(roomId);
-    // }
     return redirect(`/videoCall/${roomId}`);
 };
-
-// const createRoom = (roomId: string) => {
-//     // socket.emit("create-room", roomId);
-//     socket.emit("join-room", roomId);
-
-//     // socket.emit("join-roomt", roomId);
-// };
-
-// const joinRoom = (roomId: string) => {
-//     socket.emit("join-room", roomId);
-// };
 
 type Errors = {
     empty?: boolean;
