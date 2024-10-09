@@ -1,22 +1,39 @@
-import { ActionFunctionArgs, json } from "@remix-run/node";
+import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Form, useActionData } from "@remix-run/react";
+import { socket } from "config/socket.client";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
+
+    const intent = String(formData.get("intent"));
+
+    const isNewMeeting = intent === "new";
+    const isJoinMeet = intent === "submit";
+
     const roomId = String(formData.get("roomId"));
 
-    console.log(roomId);
     const err = isValidRoomId(roomId);
+    if (err) return json(err);
 
-    console.log(err);
-
-    if (err) {
-        return json(err);
+    if (isNewMeeting) {
+        createRoom(roomId);
     }
 
-    return roomId;
+    if (isJoinMeet) {
+        joinRoom(roomId);
+    }
+    return redirect(`/videoCall/${roomId}`);
+};
+
+const createRoom = (roomId: string) => {
+    socket.emit("create-room", roomId);
+    // socket.emit("join-roomt", roomId);
+};
+
+const joinRoom = (roomId: string) => {
+    socket.emit("join-room", roomId);
 };
 
 type Errors = {
@@ -26,37 +43,42 @@ type Errors = {
 
 const isValidRoomId = (roomId: string) => {
     const errors: Errors = {};
-    if (!roomId) {
-        errors.empty = true;
-        return errors;
-    }
+    if (!roomId) errors.empty = true;
 
-    if (roomId.length < 3) {
-        errors.invalid = true;
-        return errors;
-    }
+    if (roomId.length < 3) errors.invalid = true;
+
+    if (Object.keys(errors).length) return errors;
     return null;
 };
 
 export default function chatDashboard() {
     const actionData = useActionData<typeof action>() as Errors;
-    console.log(actionData);
+
     return (
         <main className="w-screen h-screen bg-green-900">
             <div className="flex flex-row items-center">
                 <Form method="post">
-                    <Button variant={"blue"} className="w-56 h-14">
+                    <Button
+                        variant={"blue"}
+                        className="w-56 h-14"
+                        name="intent"
+                        value="new"
+                    >
                         New meeting
                     </Button>
 
                     <Input name="roomId" type="text" placeholder="roomId" />
+
                     {actionData?.empty && (
                         <label className="text-red-700">Obj is empty</label>
                     )}
+
                     {actionData?.invalid && (
                         <label className="text-red-700">Obj is invalid</label>
                     )}
-                    <Button type="submit">Join</Button>
+                    <Button type="submit" name="intent" value="submit">
+                        Join
+                    </Button>
                 </Form>
             </div>
         </main>

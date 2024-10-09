@@ -18,6 +18,10 @@ const io = new Server(httpServer, {});
 io.on("connection", (socket) => {
     console.log("connected");
     console.log(socket.id);
+
+    // socket.on("connection",() =>{
+    //     console.log()
+    // });
 });
 
 httpServer.listen(3000);
