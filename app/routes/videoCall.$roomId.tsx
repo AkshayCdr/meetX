@@ -3,6 +3,15 @@ import { useLoaderData } from "@remix-run/react";
 import { socket } from "../../config/socket.client";
 import { useEffect, useRef } from "react";
 import { peerConnection } from "../../config/peerconnection.client";
+import {
+    HandleCall,
+    HandleRemoteIceCandidate,
+    HandleRemoteTrack,
+    HandleOffer,
+    HandleAnswer,
+    HandleIceCandidate,
+    SetStream,
+} from "~/types/videoCall.types";
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
@@ -17,11 +26,6 @@ const getStream = async () => {
     });
 };
 
-type HandleCall = (args: {
-    peerConnection: RTCPeerConnection;
-    roomId: string;
-}) => Promise<void>;
-
 const handleCall: HandleCall = async ({ peerConnection, roomId }) => {
     const offer = await peerConnection.createOffer();
 
@@ -30,21 +34,11 @@ const handleCall: HandleCall = async ({ peerConnection, roomId }) => {
     socket.emit("offer", offer, roomId);
 };
 
-type HandleRemoteIceCandidate = (args: {
-    e: RTCPeerConnectionIceEvent;
-    roomId: string;
-}) => void;
-
 const handleRemoteIceCandidate: HandleRemoteIceCandidate = ({ e, roomId }) => {
     if (e.candidate) {
         socket.emit("ice-candidate", e.candidate, roomId);
     }
 };
-
-type HandleRemoteTrack = (args: {
-    e: RTCTrackEvent;
-    remoteVideoElement: React.RefObject<HTMLVideoElement>;
-}) => void;
 
 const handleRemoteTrack: HandleRemoteTrack = ({ e, remoteVideoElement }) => {
     const [data] = e.streams;
@@ -53,11 +47,6 @@ const handleRemoteTrack: HandleRemoteTrack = ({ e, remoteVideoElement }) => {
         remoteVideoElement.current.srcObject = data;
 };
 
-type HandleOffer = (args: {
-    offer: RTCSessionDescriptionInit;
-    roomId: string;
-}) => void;
-
 const handleOffer: HandleOffer = async ({ offer, roomId }) => {
     await peerConnection.setRemoteDescription(offer);
     const answer = await peerConnection.createAnswer();
@@ -65,19 +54,17 @@ const handleOffer: HandleOffer = async ({ offer, roomId }) => {
     socket.emit("answer", answer, roomId);
 };
 
-const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
+const handleAnswer: HandleAnswer = async (answer) => {
     if (!answer) return;
     await peerConnection.setRemoteDescription(answer);
 };
 
-const handleIceCandidate = async (ice: RTCIceCandidate) => {
+const handleIceCandidate: HandleIceCandidate = async (ice) => {
     if (!ice) return;
     await peerConnection.addIceCandidate(ice);
 };
 
-const setStream = async (
-    locaVideoElement: React.RefObject<HTMLVideoElement>
-) => {
+const setStream: SetStream = async (locaVideoElement) => {
     if (locaVideoElement.current) {
         locaVideoElement.current.srcObject = await getStream();
     }
@@ -116,7 +103,7 @@ export default function videoCall() {
             socket.off("answer", handleAnswer);
             socket.off("ice-candidate", handleIceCandidate);
         };
-    });
+    }, []);
 
     return (
         <main>
