@@ -20,7 +20,19 @@ io.on("connection", (socket) => {
     console.log(socket.id);
 
     socket.on("join-room", (roomId) => {
-        socket.join("roomId");
+        socket.join(roomId);
+    });
+
+    socket.on("offer", ({ offer, roomId }) => {
+        socket.to(roomId).emit(offer);
+    });
+
+    socket.on("answer", ({ answer, roomId }) => {
+        socket.to(roomId).emit(answer);
+    });
+
+    socket.on("ice-candidate", ({ ice, roomId }) => {
+        socket.to(roomId).emit(ice);
     });
     // socket.on("connection",() =>{
     //     console.log()

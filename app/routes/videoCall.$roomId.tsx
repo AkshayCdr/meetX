@@ -17,7 +17,7 @@ const peerConfiguration = {
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
 
-    return null;
+    return params;
 };
 
 const getStream = async () => {
@@ -27,46 +27,93 @@ const getStream = async () => {
     });
 };
 
-const handleCall = (videElement: React.RefObject<HTMLVideoElement>) => {
-    const peerConnection = new RTCPeerConnection(peerConfiguration);
-    peerConnection.onicecandidate = handleRemoteIceCandidate;
-    peerConnection.ontrack = (e) => handleRemoteTrack(e, videElement);
+type HandleCallArgs = {
+    peerConnection: RTCPeerConnection;
+    remoteVideoElement: React.RefObject<HTMLVideoElement>;
+    roomId: string;
+};
+const handleCall = async ({
+    peerConnection,
+    remoteVideoElement,
+    roomId,
+}: HandleCallArgs) => {
+    const offer = await peerConnection.createOffer();
+
+    await peerConnection.setLocalDescription(offer);
+
+    socket.emit("offer", { offer, roomId });
+
+    peerConnection.onicecandidate = (e) => handleRemoteIceCandidate(e, roomId);
+    peerConnection.ontrack = (e) =>
+        handleRemoteTrack({ e, remoteVideoElement });
 };
 
-const handleRemoteIceCandidate = (e: RTCPeerConnectionIceEvent) => {
+const handleRemoteIceCandidate = (
+    e: RTCPeerConnectionIceEvent,
+    roomId: string
+) => {
     if (e.candidate) {
         //emit ice candidate
+        socket.emit("ice-candidate", { ice: e.candidate, roomId });
     }
 };
 
-const handleRemoteTrack = (
-    e: RTCTrackEvent,
-    videElement: React.RefObject<HTMLVideoElement>
-) => {
+type HandleRemoteTrack = {
+    e: RTCTrackEvent;
+    remoteVideoElement: React.RefObject<HTMLVideoElement>;
+};
+
+const handleRemoteTrack = ({ e, remoteVideoElement }: HandleRemoteTrack) => {
     const [data] = e.streams;
 
-    if (videElement && videElement.current)
-        videElement.current.srcObject = data;
+    if (remoteVideoElement && remoteVideoElement.current)
+        remoteVideoElement.current.srcObject = data;
 };
 
 export default function videoCall() {
-    const data = useLoaderData();
+    const roomId = useLoaderData<string>();
 
-    const videElement1 = useRef<HTMLVideoElement>(null);
-    const videElement2 = useRef<HTMLVideoElement>(null);
+    const locaVideoElement = useRef<HTMLVideoElement>(null);
+    const remoteVideoElement = useRef<HTMLVideoElement>(null);
+
+    const peerConnection = new RTCPeerConnection(peerConfiguration);
+
+    getStream()
+        .then((tracks) => tracks.getTracks())
+        .then((res) => res.forEach((track) => peerConnection.addTrack(track)));
 
     const setStream = async () => {
-        if (videElement1?.current) {
-            videElement1.current.srcObject = await getStream();
+        if (locaVideoElement.current) {
+            locaVideoElement.current.srcObject = await getStream();
         }
     };
 
     useEffect(() => {
         socket.connect();
-        socket.emit("join-room", data);
+        socket.emit("join-room", roomId);
+
+        socket.on("offer", async (offer) => {
+            await peerConnection.setRemoteDescription(offer);
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            socket.emit("answer", { answer, roomId });
+        });
+
+        socket.on("answer", async (answer) => {
+            if (!answer) return;
+            await peerConnection.setRemoteDescription(answer);
+        });
+
+        socket.on("ice-candidate", async (ice) => {
+            if (!ice) return;
+            await peerConnection.addIceCandidate(ice);
+        });
 
         return () => {
             socket.off("join-room");
+            socket.off("offer");
+            socket.off("answer");
+            socket.off("ice-candidate");
         };
     });
 
@@ -74,12 +121,22 @@ export default function videoCall() {
         <main>
             <h1>video call</h1>
 
-            <video ref={videElement1} autoPlay></video>
-            <video ref={videElement2} autoPlay></video>
+            <video ref={locaVideoElement} autoPlay></video>
+            <video ref={remoteVideoElement} autoPlay></video>
 
             <button onClick={setStream}>Get video </button>
 
-            <button onClick={() => handleCall(videElement2)}>call</button>
+            <button
+                onClick={() =>
+                    handleCall({
+                        peerConnection,
+                        remoteVideoElement,
+                        roomId,
+                    })
+                }
+            >
+                call
+            </button>
         </main>
     );
 }
