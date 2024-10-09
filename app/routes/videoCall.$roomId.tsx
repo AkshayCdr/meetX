@@ -2,17 +2,8 @@ import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { socket } from "../../config/socket.client";
 import { useEffect, useRef } from "react";
-
-const peerConfiguration = {
-    iceServers: [
-        {
-            urls: [
-                "stun:stun.l.google.com:19302",
-                "stun:stun1.l.google.com:19302",
-            ],
-        },
-    ],
-};
+import { peerConnection } from "../../config/peerconnection.client";
+// const peerConnection = new RTCPeerConnection(peerConfiguration);
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
@@ -29,23 +20,14 @@ const getStream = async () => {
 
 type HandleCallArgs = {
     peerConnection: RTCPeerConnection;
-    remoteVideoElement: React.RefObject<HTMLVideoElement>;
     roomId: string;
 };
-const handleCall = async ({
-    peerConnection,
-    remoteVideoElement,
-    roomId,
-}: HandleCallArgs) => {
+const handleCall = async ({ peerConnection, roomId }: HandleCallArgs) => {
     const offer = await peerConnection.createOffer();
 
     await peerConnection.setLocalDescription(offer);
 
-    socket.emit("offer", { offer, roomId });
-
-    peerConnection.onicecandidate = (e) => handleRemoteIceCandidate(e, roomId);
-    peerConnection.ontrack = (e) =>
-        handleRemoteTrack({ e, remoteVideoElement });
+    socket.emit("offer", offer, roomId);
 };
 
 const handleRemoteIceCandidate = (
@@ -54,7 +36,7 @@ const handleRemoteIceCandidate = (
 ) => {
     if (e.candidate) {
         //emit ice candidate
-        socket.emit("ice-candidate", { ice: e.candidate, roomId });
+        socket.emit("ice-candidate", e.candidate, roomId);
     }
 };
 
@@ -64,7 +46,13 @@ type HandleRemoteTrack = {
 };
 
 const handleRemoteTrack = ({ e, remoteVideoElement }: HandleRemoteTrack) => {
+    console.log("got remote track");
+    console.log(e);
+    console.log(remoteVideoElement);
+    console.log(e.streams);
     const [data] = e.streams;
+
+    console.log(data);
 
     if (remoteVideoElement && remoteVideoElement.current)
         remoteVideoElement.current.srcObject = data;
@@ -72,15 +60,10 @@ const handleRemoteTrack = ({ e, remoteVideoElement }: HandleRemoteTrack) => {
 
 export default function videoCall() {
     const roomId = useLoaderData<string>();
+    console.log(roomId);
 
     const locaVideoElement = useRef<HTMLVideoElement>(null);
     const remoteVideoElement = useRef<HTMLVideoElement>(null);
-
-    const peerConnection = new RTCPeerConnection(peerConfiguration);
-
-    getStream()
-        .then((tracks) => tracks.getTracks())
-        .then((res) => res.forEach((track) => peerConnection.addTrack(track)));
 
     const setStream = async () => {
         if (locaVideoElement.current) {
@@ -89,23 +72,40 @@ export default function videoCall() {
     };
 
     useEffect(() => {
-        socket.connect();
+        (async () => {
+            const localStream = await getStream();
+            for (const track of localStream.getTracks()) {
+                peerConnection.addTrack(track, localStream);
+            }
+        })();
+
+        peerConnection.onicecandidate = (e) =>
+            handleRemoteIceCandidate(e, roomId);
+
+        peerConnection.ontrack = (e) =>
+            handleRemoteTrack({ e, remoteVideoElement });
+
+        // socket.connect();
         socket.emit("join-room", roomId);
 
         socket.on("offer", async (offer) => {
             await peerConnection.setRemoteDescription(offer);
             const answer = await peerConnection.createAnswer();
             await peerConnection.setLocalDescription(answer);
-            socket.emit("answer", { answer, roomId });
+            socket.emit("answer", answer, roomId);
         });
 
         socket.on("answer", async (answer) => {
-            if (!answer) return;
+            // if (!answer) return;
+            console.log("answer is ");
+            console.log(answer);
             await peerConnection.setRemoteDescription(answer);
         });
 
         socket.on("ice-candidate", async (ice) => {
-            if (!ice) return;
+            // if (!ice) return;
+            console.log("ice candidate is ");
+            console.log(ice);
             await peerConnection.addIceCandidate(ice);
         });
 
@@ -130,7 +130,6 @@ export default function videoCall() {
                 onClick={() =>
                     handleCall({
                         peerConnection,
-                        remoteVideoElement,
                         roomId,
                     })
                 }
