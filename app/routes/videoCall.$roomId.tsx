@@ -27,14 +27,27 @@ const getStream = async () => {
     });
 };
 
-const handleCall = () => {
+const handleCall = (videElement: React.RefObject<HTMLVideoElement>) => {
     const peerConnection = new RTCPeerConnection(peerConfiguration);
     peerConnection.onicecandidate = handleRemoteIceCandidate;
-    peerConnection.ontrack = handleRemoteTrack;
+    peerConnection.ontrack = (e) => handleRemoteTrack(e, videElement);
 };
 
-const handleRemoteIceCandidate = () => {};
-const handleRemoteTrack = () => {};
+const handleRemoteIceCandidate = (e: RTCPeerConnectionIceEvent) => {
+    if (e.candidate) {
+        //emit ice candidate
+    }
+};
+
+const handleRemoteTrack = (
+    e: RTCTrackEvent,
+    videElement: React.RefObject<HTMLVideoElement>
+) => {
+    const [data] = e.streams;
+
+    if (videElement && videElement.current)
+        videElement.current.srcObject = data;
+};
 
 export default function videoCall() {
     const data = useLoaderData();
@@ -66,7 +79,7 @@ export default function videoCall() {
 
             <button onClick={setStream}>Get video </button>
 
-            <button onClick={handleCall}>call</button>
+            <button onClick={() => handleCall(videElement2)}>call</button>
         </main>
     );
 }
