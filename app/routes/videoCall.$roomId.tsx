@@ -3,7 +3,6 @@ import { useLoaderData } from "@remix-run/react";
 import { socket } from "../../config/socket.client";
 import { useEffect, useRef } from "react";
 import { peerConnection } from "../../config/peerconnection.client";
-// const peerConnection = new RTCPeerConnection(peerConfiguration);
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
@@ -18,11 +17,12 @@ const getStream = async () => {
     });
 };
 
-type HandleCallArgs = {
+type HandleCall = (args: {
     peerConnection: RTCPeerConnection;
     roomId: string;
-};
-const handleCall = async ({ peerConnection, roomId }: HandleCallArgs) => {
+}) => Promise<void>;
+
+const handleCall: HandleCall = async ({ peerConnection, roomId }) => {
     const offer = await peerConnection.createOffer();
 
     await peerConnection.setLocalDescription(offer);
@@ -30,46 +30,64 @@ const handleCall = async ({ peerConnection, roomId }: HandleCallArgs) => {
     socket.emit("offer", offer, roomId);
 };
 
-const handleRemoteIceCandidate = (
-    e: RTCPeerConnectionIceEvent,
-    roomId: string
-) => {
+type HandleRemoteIceCandidate = (args: {
+    e: RTCPeerConnectionIceEvent;
+    roomId: string;
+}) => void;
+
+const handleRemoteIceCandidate: HandleRemoteIceCandidate = ({ e, roomId }) => {
     if (e.candidate) {
-        //emit ice candidate
         socket.emit("ice-candidate", e.candidate, roomId);
     }
 };
 
-type HandleRemoteTrack = {
+type HandleRemoteTrack = (args: {
     e: RTCTrackEvent;
     remoteVideoElement: React.RefObject<HTMLVideoElement>;
-};
+}) => void;
 
-const handleRemoteTrack = ({ e, remoteVideoElement }: HandleRemoteTrack) => {
-    console.log("got remote track");
-    console.log(e);
-    console.log(remoteVideoElement);
-    console.log(e.streams);
+const handleRemoteTrack: HandleRemoteTrack = ({ e, remoteVideoElement }) => {
     const [data] = e.streams;
-
-    console.log(data);
 
     if (remoteVideoElement && remoteVideoElement.current)
         remoteVideoElement.current.srcObject = data;
 };
 
+type HandleOffer = (args: {
+    offer: RTCSessionDescriptionInit;
+    roomId: string;
+}) => void;
+
+const handleOffer: HandleOffer = async ({ offer, roomId }) => {
+    await peerConnection.setRemoteDescription(offer);
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+    socket.emit("answer", answer, roomId);
+};
+
+const handleAnswer = async (answer: RTCSessionDescriptionInit) => {
+    if (!answer) return;
+    await peerConnection.setRemoteDescription(answer);
+};
+
+const handleIceCandidate = async (ice: RTCIceCandidate) => {
+    if (!ice) return;
+    await peerConnection.addIceCandidate(ice);
+};
+
+const setStream = async (
+    locaVideoElement: React.RefObject<HTMLVideoElement>
+) => {
+    if (locaVideoElement.current) {
+        locaVideoElement.current.srcObject = await getStream();
+    }
+};
+
 export default function videoCall() {
     const roomId = useLoaderData<string>();
-    console.log(roomId);
 
     const locaVideoElement = useRef<HTMLVideoElement>(null);
     const remoteVideoElement = useRef<HTMLVideoElement>(null);
-
-    const setStream = async () => {
-        if (locaVideoElement.current) {
-            locaVideoElement.current.srcObject = await getStream();
-        }
-    };
 
     useEffect(() => {
         (async () => {
@@ -80,40 +98,23 @@ export default function videoCall() {
         })();
 
         peerConnection.onicecandidate = (e) =>
-            handleRemoteIceCandidate(e, roomId);
+            handleRemoteIceCandidate({ e, roomId });
 
         peerConnection.ontrack = (e) =>
             handleRemoteTrack({ e, remoteVideoElement });
 
-        // socket.connect();
+        socket.connect();
         socket.emit("join-room", roomId);
 
-        socket.on("offer", async (offer) => {
-            await peerConnection.setRemoteDescription(offer);
-            const answer = await peerConnection.createAnswer();
-            await peerConnection.setLocalDescription(answer);
-            socket.emit("answer", answer, roomId);
-        });
-
-        socket.on("answer", async (answer) => {
-            // if (!answer) return;
-            console.log("answer is ");
-            console.log(answer);
-            await peerConnection.setRemoteDescription(answer);
-        });
-
-        socket.on("ice-candidate", async (ice) => {
-            // if (!ice) return;
-            console.log("ice candidate is ");
-            console.log(ice);
-            await peerConnection.addIceCandidate(ice);
-        });
+        socket.on("offer", (offer) => handleOffer({ offer, roomId }));
+        socket.on("answer", handleAnswer);
+        socket.on("ice-candidate", handleIceCandidate);
 
         return () => {
             socket.off("join-room");
-            socket.off("offer");
-            socket.off("answer");
-            socket.off("ice-candidate");
+            socket.off("offer", handleOffer);
+            socket.off("answer", handleAnswer);
+            socket.off("ice-candidate", handleIceCandidate);
         };
     });
 
@@ -124,7 +125,9 @@ export default function videoCall() {
             <video ref={locaVideoElement} autoPlay></video>
             <video ref={remoteVideoElement} autoPlay></video>
 
-            <button onClick={setStream}>Get video </button>
+            <button onClick={() => setStream(locaVideoElement)}>
+                Get video
+            </button>
 
             <button
                 onClick={() =>
