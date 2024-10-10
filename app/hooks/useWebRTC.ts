@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../config/socket.client";
-import { peerConnection } from "../../config/peerconnection.client";
+import { peerConnection, channel } from "../../config/peerconnection.client";
 
 import {
     HandleCall,
@@ -13,6 +13,7 @@ import {
     HandleMessage,
     HandleRemoteDataChannel,
     UseWebRTC,
+    HandleSendMessage,
 } from "~/types/videoCall.types";
 
 const getStream = async () => {
@@ -87,6 +88,14 @@ const handleRemoteDataChannel: HandleRemoteDataChannel = ({
     channel.onmessage = (event) => handleMessage({ event, setMessage });
 };
 
+const handleSendMessage: HandleSendMessage = ({ message, setMessage }) => {
+    if (!message) return;
+
+    setMessage((prev) => [...prev, message]);
+
+    channel.send(message);
+};
+
 export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
     const [messages, setMessage] = useState<Array<string>>([]);
 
@@ -102,8 +111,6 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
 
         peerConnection.ontrack = (event) =>
             handleRemoteTrack({ event, remoteVideoElement });
-
-        const channel = peerConnection.createDataChannel("chat");
 
         channel.onmessage = (event) => handleMessage({ event, setMessage });
 
@@ -129,10 +136,11 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
         };
     }, [roomId]);
 
-    return { messages };
+    return { messages, setMessage };
 };
 
 export const webRTC = {
     setStream,
     handleCall,
+    handleSendMessage,
 };

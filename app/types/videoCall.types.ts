@@ -31,7 +31,15 @@ export type HandleRemoteDataChannel = (args: {
     setMessage: React.Dispatch<React.SetStateAction<string[]>>;
 }) => void;
 
+export type HandleSendMessage = (args: {
+    message: string | undefined;
+    setMessage: React.Dispatch<React.SetStateAction<string[]>>;
+}) => void;
+
 export type UseWebRTC = (args: {
     roomId: string;
     remoteVideoElement: React.RefObject<HTMLVideoElement>;
-}) => { messages: Array<string> };
+}) => {
+    messages: Array<string>;
+    setMessage: React.Dispatch<React.SetStateAction<string[]>>;
+};
