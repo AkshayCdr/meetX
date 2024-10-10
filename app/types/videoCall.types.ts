@@ -24,4 +24,4 @@ export type SetStream = (element: React.RefObject<HTMLVideoElement>) => void;
 export type UseWebRTC = (args: {
     roomId: string;
     remoteVideoElement: React.RefObject<HTMLVideoElement>;
-}) => void;
+}) => { messages: Array<string> };

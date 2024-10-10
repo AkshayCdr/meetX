@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { socket } from "../../config/socket.client";
 import { peerConnection } from "../../config/peerconnection.client";
 
@@ -64,7 +64,27 @@ const setStream: SetStream = async (locaVideoElement) => {
     }
 };
 
+const handleMessage = (
+    event: MessageEvent<string>,
+    setMessage: React.Dispatch<React.SetStateAction<string[]>>
+) => {
+    console.log(event.data);
+
+    setMessage((prev) => [...prev, event.data]);
+};
+
+const handleRemoteDataChannel = (
+    event: RTCDataChannelEvent,
+    setMessage: React.Dispatch<React.SetStateAction<string[]>>
+) => {
+    const channel = event.channel;
+
+    channel.onmessage = (e) => handleMessage(e, setMessage);
+};
+
 export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
+    const [messages, setMessage] = useState<Array<string>>([]);
+
     useEffect(() => {
         getStream().then((localStream) => {
             localStream.getTracks().forEach((track) => {
@@ -77,6 +97,17 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
 
         peerConnection.ontrack = (e) =>
             handleRemoteTrack({ e, remoteVideoElement });
+
+        const channel = peerConnection.createDataChannel("chat");
+
+        channel.onmessage = (e) => handleMessage(e, setMessage);
+
+        channel.onopen = () => {
+            if (channel.readyState === "open") channel.send("hai");
+        };
+
+        peerConnection.ondatachannel = (e) =>
+            handleRemoteDataChannel(e, setMessage);
 
         socket.connect();
         socket.emit("join-room", roomId);
@@ -91,7 +122,9 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
             socket.off("answer", handleAnswer);
             socket.off("ice-candidate", handleIceCandidate);
         };
-    }, []);
+    }, [roomId]);
+
+    return { messages };
 };
 
 export const webRTC = {
