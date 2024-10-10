@@ -4,4 +4,9 @@ import path from "path";
 
 export default defineConfig({
     plugins: [remix()],
+    resolve: {
+        alias: {
+            "~": path.resolve(__dirname, "app"),
+        },
+    },
 });

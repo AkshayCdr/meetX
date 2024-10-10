@@ -1,7 +1,4 @@
-export type HandleCall = (args: {
-    peerConnection: RTCPeerConnection;
-    roomId: string;
-}) => Promise<void>;
+export type HandleCall = (args: { roomId: string }) => Promise<void>;
 
 export type HandleRemoteIceCandidate = (args: {
     e: RTCPeerConnectionIceEvent;
@@ -23,3 +20,8 @@ export type HandleAnswer = (answer: RTCSessionDescriptionInit) => void;
 export type HandleIceCandidate = (ice: RTCIceCandidate) => void;
 
 export type SetStream = (element: React.RefObject<HTMLVideoElement>) => void;
+
+export type UseWebRTC = (args: {
+    roomId: string;
+    remoteVideoElement: React.RefObject<HTMLVideoElement>;
+}) => void;

@@ -18,30 +18,21 @@ const io = new Server(httpServer, {});
 io.on("connection", (socket) => {
     socket.on("join-room", (data) => {
         const { roomId } = data;
-        console.log("joined room ", roomId);
         socket.join(roomId);
     });
 
     socket.on("offer", (offer, data) => {
-        console.log("offer");
         const { roomId } = data;
-        console.log(data);
-        console.log(roomId);
-        console.log(offer);
         socket.to(roomId).emit("offer", offer);
     });
 
     socket.on("answer", (answer, data) => {
         const { roomId } = data;
-        console.log(roomId);
-        console.log(answer);
         socket.to(roomId).emit("answer", answer);
     });
 
     socket.on("ice-candidate", (ice, data) => {
         const { roomId } = data;
-        console.log(roomId);
-        console.log(ice);
         socket.to(roomId).emit("ice-candidate", ice);
     });
 });

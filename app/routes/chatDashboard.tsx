@@ -1,6 +1,6 @@
 import { ActionFunctionArgs, json, redirect } from "@remix-run/node";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
 import { Form, useActionData } from "@remix-run/react";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
