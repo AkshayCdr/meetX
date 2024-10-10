@@ -10,6 +10,8 @@ import {
     HandleAnswer,
     HandleIceCandidate,
     SetStream,
+    HandleMessage,
+    HandleRemoteDataChannel,
     UseWebRTC,
 } from "~/types/videoCall.types";
 
@@ -28,14 +30,20 @@ const handleCall: HandleCall = async ({ roomId }) => {
     socket.emit("offer", offer, roomId);
 };
 
-const handleRemoteIceCandidate: HandleRemoteIceCandidate = ({ e, roomId }) => {
-    if (e.candidate) {
-        socket.emit("ice-candidate", e.candidate, roomId);
+const handleRemoteIceCandidate: HandleRemoteIceCandidate = ({
+    event,
+    roomId,
+}) => {
+    if (event.candidate) {
+        socket.emit("ice-candidate", event.candidate, roomId);
     }
 };
 
-const handleRemoteTrack: HandleRemoteTrack = ({ e, remoteVideoElement }) => {
-    const [data] = e.streams;
+const handleRemoteTrack: HandleRemoteTrack = ({
+    event,
+    remoteVideoElement,
+}) => {
+    const [data] = event.streams;
 
     if (remoteVideoElement && remoteVideoElement.current)
         remoteVideoElement.current.srcObject = data;
@@ -64,22 +72,19 @@ const setStream: SetStream = async (locaVideoElement) => {
     }
 };
 
-const handleMessage = (
-    event: MessageEvent<string>,
-    setMessage: React.Dispatch<React.SetStateAction<string[]>>
-) => {
+const handleMessage: HandleMessage = ({ event, setMessage }) => {
     console.log(event.data);
 
     setMessage((prev) => [...prev, event.data]);
 };
 
-const handleRemoteDataChannel = (
-    event: RTCDataChannelEvent,
-    setMessage: React.Dispatch<React.SetStateAction<string[]>>
-) => {
+const handleRemoteDataChannel: HandleRemoteDataChannel = ({
+    event,
+    setMessage,
+}) => {
     const channel = event.channel;
 
-    channel.onmessage = (e) => handleMessage(e, setMessage);
+    channel.onmessage = (event) => handleMessage({ event, setMessage });
 };
 
 export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
@@ -92,22 +97,22 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
             });
         });
 
-        peerConnection.onicecandidate = (e) =>
-            handleRemoteIceCandidate({ e, roomId });
+        peerConnection.onicecandidate = (event) =>
+            handleRemoteIceCandidate({ event, roomId });
 
-        peerConnection.ontrack = (e) =>
-            handleRemoteTrack({ e, remoteVideoElement });
+        peerConnection.ontrack = (event) =>
+            handleRemoteTrack({ event, remoteVideoElement });
 
         const channel = peerConnection.createDataChannel("chat");
 
-        channel.onmessage = (e) => handleMessage(e, setMessage);
+        channel.onmessage = (event) => handleMessage({ event, setMessage });
 
         channel.onopen = () => {
             if (channel.readyState === "open") channel.send("hai");
         };
 
-        peerConnection.ondatachannel = (e) =>
-            handleRemoteDataChannel(e, setMessage);
+        peerConnection.ondatachannel = (event) =>
+            handleRemoteDataChannel({ event, setMessage });
 
         socket.connect();
         socket.emit("join-room", roomId);
