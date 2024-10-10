@@ -8,6 +8,7 @@ export type HandleRemoteIceCandidate = (args: {
 export type HandleRemoteTrack = (args: {
     event: RTCTrackEvent;
     remoteVideoElement: React.RefObject<HTMLVideoElement>;
+    remoteAudioElement: React.RefObject<HTMLAudioElement>;
 }) => void;
 
 export type HandleOffer = (args: {
@@ -19,7 +20,10 @@ export type HandleAnswer = (answer: RTCSessionDescriptionInit) => void;
 
 export type HandleIceCandidate = (ice: RTCIceCandidate) => void;
 
-export type SetStream = (element: React.RefObject<HTMLVideoElement>) => void;
+export type SetStream = (args: {
+    localVideoElement: React.RefObject<HTMLVideoElement>;
+    localAudioElement: React.RefObject<HTMLAudioElement>;
+}) => void;
 
 export type HandleMessage = (args: {
     event: MessageEvent<string>;
@@ -39,6 +43,7 @@ export type HandleSendMessage = (args: {
 export type UseWebRTC = (args: {
     roomId: string;
     remoteVideoElement: React.RefObject<HTMLVideoElement>;
+    remoteAudioElement: React.RefObject<HTMLAudioElement>;
 }) => {
     messages: Array<string>;
     setMessage: React.Dispatch<React.SetStateAction<string[]>>;

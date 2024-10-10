@@ -43,11 +43,16 @@ const handleRemoteIceCandidate: HandleRemoteIceCandidate = ({
 const handleRemoteTrack: HandleRemoteTrack = ({
     event,
     remoteVideoElement,
+    remoteAudioElement,
 }) => {
     const [data] = event.streams;
 
     if (remoteVideoElement && remoteVideoElement.current)
         remoteVideoElement.current.srcObject = data;
+
+    if (remoteAudioElement && remoteAudioElement.current) {
+        remoteAudioElement.current.srcObject = data;
+    }
 };
 
 const handleOffer: HandleOffer = async ({ offer, roomId }) => {
@@ -67,9 +72,17 @@ const handleIceCandidate: HandleIceCandidate = async (ice) => {
     await peerConnection.addIceCandidate(ice);
 };
 
-const setStream: SetStream = async (locaVideoElement) => {
-    if (locaVideoElement.current) {
-        locaVideoElement.current.srcObject = await getStream();
+const setStream: SetStream = async ({
+    localVideoElement,
+    localAudioElement,
+}) => {
+    const localStream = await getStream();
+    if (localVideoElement.current) {
+        localVideoElement.current.srcObject = localStream;
+    }
+
+    if (localAudioElement.current) {
+        localAudioElement.current.srcObject = localStream;
     }
 };
 
@@ -96,7 +109,11 @@ const handleSendMessage: HandleSendMessage = ({ message, setMessage }) => {
     channel.send(message);
 };
 
-export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
+export const useWebRTC: UseWebRTC = ({
+    roomId,
+    remoteVideoElement,
+    remoteAudioElement,
+}) => {
     const [messages, setMessage] = useState<Array<string>>([]);
 
     useEffect(() => {
@@ -110,7 +127,11 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
             handleRemoteIceCandidate({ event, roomId });
 
         peerConnection.ontrack = (event) =>
-            handleRemoteTrack({ event, remoteVideoElement });
+            handleRemoteTrack({
+                event,
+                remoteVideoElement,
+                remoteAudioElement,
+            });
 
         channel.onmessage = (event) => handleMessage({ event, setMessage });
 
@@ -141,6 +162,7 @@ export const useWebRTC: UseWebRTC = ({ roomId, remoteVideoElement }) => {
 
 export const webRTC = {
     setStream,
+
     handleCall,
     handleSendMessage,
 };
