@@ -6,7 +6,7 @@
 
 -   [x] Deployed https://meetx-dwcw.onrender.com/
 -   [x] Added ci/cd
--   [ ] Adding webrtc
--   [ ] Adding signalling server using websocket
+-   [x] Adding webrtc
+-   [x] Adding signalling server using websocket
 
 ---
