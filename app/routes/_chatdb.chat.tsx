@@ -34,7 +34,7 @@ const isValidRoomId = (roomId: string) => {
     return null;
 };
 
-export default function chatDashboard() {
+export default function chat() {
     const actionData = useActionData<typeof action>() as Errors;
 
     return (
