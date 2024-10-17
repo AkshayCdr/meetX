@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, redirect } from "@remix-run/node";
 import { Form, Link } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { createUser } from "~/utils/authenticate";
 
 export const description =
     "A sign up form with first name, last name, email and password inside a card. There's an option to sign up with GitHub and a link to login if you already have an account";
@@ -17,14 +18,24 @@ export const description =
 export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
 
+    console.log(formData);
     //validation
 
-    //check for email and password redis
+    const name = formData.get("first-name") + " " + formData.get("last-name");
+    const email = String(formData.get("email"));
+    const password = String(formData.get("password"));
+
+    const err = await createUser({ name, email, password });
+    // console.log(data);
+
+    if (err) return null;
+
+    return redirect("/login");
 };
 
 export default function SignUp() {
     return (
-        <Form className="">
+        <Form className="" method="post">
             <Card className="w-full mx-auto max-w-sm">
                 <CardHeader>
                     <CardTitle className="text-xl">Sign Up</CardTitle>

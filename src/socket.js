@@ -26,6 +26,6 @@ function setUpSocket(httpServer) {
     });
 }
 
-export default socket = {
+export const socket = {
     setUpSocket,
 };

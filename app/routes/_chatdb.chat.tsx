@@ -3,6 +3,10 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Form, useActionData } from "@remix-run/react";
 
+export const loader = () => {
+    return null;
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
 

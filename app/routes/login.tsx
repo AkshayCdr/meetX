@@ -19,8 +19,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
     console.log(formData);
     //validation
+    const email = String(formData.get("email"));
+    const password = String(formData.get("password"));
+    //send to backend
+    // const isAuthenticated = authenticate({email,password})
 
-    //check for email passwor redis
     return null;
 };
 
