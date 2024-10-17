@@ -6,9 +6,11 @@ import userRouter from "./src/routes/user.route.js";
 
 // notice that the result of `remix vite:build` is "just a module"
 import * as build from "./build/server/index.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.static("build/client"));
 
 app.use("/user", userRouter);
