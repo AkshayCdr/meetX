@@ -25,10 +25,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     //send to backend
     const [res, err] = await authenticate({ email, password });
 
-    // console.log(res);
-    // console.log(err);
-    // console.log(res?.headers);
-
     if (err) return null;
     if (!res) return null;
 
@@ -36,7 +32,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     if (!token) return null;
 
-    console.log(token);
     return redirect("/chat", {
         headers: {
             "Set-Cookie": token,

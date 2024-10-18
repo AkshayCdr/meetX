@@ -41,10 +41,5 @@ export const createUser: CreateUser = async (userDetails) => {
 
     const message = await reponse.json();
 
-    console.log(message);
-    // if (!message.length) {
-    //     return new Error("invalid reponse");
-    // }
-
     return null;
 };

@@ -11,7 +11,7 @@ await client.connect();
 const add = async (userDetails) => {
     const id = generateUniqueId();
 
-    console.log(userDetails.name);
+    console.log(userDetails.email);
 
     await client.set(`username:${userDetails.email}`, id);
 
@@ -41,13 +41,12 @@ const getUuid = async (email) => {
 const getPassword = async (userId) => {
     const password = await client.hGet(`user:${userId}`, "password");
 
-    console.log(password);
-
     return password;
 };
 
 const getName = async (userId) => {
-    const name = await client.get(`user${userId}`, "name");
+    const name = await client.hGet(`user:${userId}`, "name");
+
     return name;
 };
 

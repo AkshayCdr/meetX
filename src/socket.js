@@ -1,9 +1,14 @@
 import { Server } from "socket.io";
+import { authenticateSocket } from "./middlewares/authentication.js";
 
 function setUpSocket(httpServer) {
     const io = new Server(httpServer, {});
 
+    io.use(authenticateSocket);
+
     io.on("connection", (socket) => {
+        console.log(socket.user);
+
         socket.on("join-room", (data) => {
             const { roomId } = data;
             socket.join(roomId);

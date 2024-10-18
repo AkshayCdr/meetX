@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config.js";
+import cookie from "cookie";
 
 export const authentication = (req, res, next) => {
     const token = req.cookies.token;
@@ -14,6 +15,20 @@ export const authentication = (req, res, next) => {
 };
 
 export const authenticateSocket = (socket, next) => {
-    const token = socket.handshake.auth.token;
-    next();
+    const cookies = socket.handshake.headers.cookie;
+
+    const data = cookie.parse(cookies);
+
+    if (!data) return next(new Error("token doesn't exist"));
+
+    const { token } = data;
+
+    console.log(token);
+
+    jwt.verify(token, config.jwtKey, (err, usr) => {
+        if (err) return next(new Error("invalid token"));
+        socket.user = usr;
+    });
+
+    return next();
 };
