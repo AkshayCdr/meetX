@@ -18,17 +18,30 @@ export const description =
 
 export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
-    console.log(formData);
+
     //validation
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     //send to backend
-    const err = await authenticate({ email, password });
+    const [res, err] = await authenticate({ email, password });
 
-    console.log(err);
+    // console.log(res);
+    // console.log(err);
+    // console.log(res?.headers);
 
     if (err) return null;
-    return redirect("/chat");
+    if (!res) return null;
+
+    const token = String(res.headers.get("set-cookie"));
+
+    if (!token) return null;
+
+    console.log(token);
+    return redirect("/chat", {
+        headers: {
+            "Set-Cookie": token,
+        },
+    });
 };
 
 export default function Login() {

@@ -6,9 +6,13 @@ type UserDetailsArgs = {
     name?: string;
 };
 
-export const authenticate = async (userData: UserDetailsArgs) => {
-    const reponse = await fetch("http://localhost:3000/user/login", {
-        method: "post",
+type Authenticate = (
+    userData: UserDetailsArgs
+) => Promise<[null | Response, null | Error]>;
+
+export const authenticate: Authenticate = async (userData) => {
+    const res = await fetch("http://localhost:3000/user/login", {
+        method: "POST",
         credentials: "include",
         headers: {
             "Content-Type": "application/json",
@@ -16,13 +20,9 @@ export const authenticate = async (userData: UserDetailsArgs) => {
         body: JSON.stringify(userData),
     });
 
-    if (!reponse.ok) return new Error("error authenticating");
+    if (!res.ok) return [null, new Error("error authenticating")];
 
-    const data = await reponse.json();
-
-    console.log(data);
-
-    return null;
+    return [res, null];
 };
 
 type CreateUser = (userDetails: UserDetailsArgs) => Promise<Error | null>;

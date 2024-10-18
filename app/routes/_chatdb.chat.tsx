@@ -3,7 +3,9 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Form, useActionData } from "@remix-run/react";
 
-export const loader = () => {
+export const loader = ({ request }: ActionFunctionArgs) => {
+    const cookies = request.headers.get("cookie");
+    console.log(cookies);
     return null;
 };
 
