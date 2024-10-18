@@ -1,4 +1,4 @@
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, redirect } from "@remix-run/node";
 import { Form } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
 } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
+import { authenticate } from "~/utils/authenticate";
 
 export const description =
     "A simple login form with email and password. The submit button says 'Sign in'.";
@@ -22,14 +23,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     const email = String(formData.get("email"));
     const password = String(formData.get("password"));
     //send to backend
-    // const isAuthenticated = authenticate({email,password})
+    const err = await authenticate({ email, password });
 
-    return null;
+    console.log(err);
+
+    if (err) return null;
+    return redirect("/chat");
 };
 
 export default function Login() {
     return (
-        <Form className="flex justify-center items-center">
+        <Form className="flex justify-center items-center" method="post">
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle className="text-2xl">Login</CardTitle>

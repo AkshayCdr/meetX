@@ -1,6 +1,5 @@
 const generateUniqueId = () => Math.floor(10000000 + Math.random() * 90000000);
 
-import { cli } from "@remix-run/dev";
 import { createClient } from "redis";
 
 const client = createClient();
@@ -14,7 +13,7 @@ const add = async (userDetails) => {
 
     console.log(userDetails.name);
 
-    await client.set(`username:${userDetails.name}`, id);
+    await client.set(`username:${userDetails.email}`, id);
 
     await client.hSet(`user:${id}`, userDetails);
 };
@@ -29,12 +28,12 @@ const getAll = async () => {
     return user;
 };
 
-const get = async (userId) => {
-    return client.hGetAll(`user:${userId}`);
+const get = async (email) => {
+    return client.hGetAll(`user:${email}`);
 };
 
-const getUuid = async (username) => {
-    const id = await client.get(`username:${username}`);
+const getUuid = async (email) => {
+    const id = await client.get(`username:${email}`);
 
     return id;
 };
@@ -47,7 +46,13 @@ const getPassword = async (userId) => {
     return password;
 };
 
+const getName = async (userId) => {
+    const name = await client.get(`user${userId}`, "name");
+    return name;
+};
+
 export const User = {
+    getName,
     add,
     getAll,
     getUuid,

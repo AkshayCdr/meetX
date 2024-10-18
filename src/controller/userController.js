@@ -4,8 +4,10 @@ import { config } from "../config.js";
 
 export const createUser = async (req, res) => {
     const data = req.body;
+    console.log(data);
+
     await User.add(data);
-    res.status(201).send("hai");
+    res.status(201).send({ message: "hai" });
 };
 
 export const getUser = async (req, res) => {
@@ -14,11 +16,11 @@ export const getUser = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-    const { name, password } = req.body;
+    const { email, password } = req.body;
 
-    const uuid = await User.getUuid(name);
+    const uuid = await User.getUuid(email);
 
-    if (!uuid) return res.status(401).status("username dont exist");
+    if (!uuid) return res.status(401).status({ message: "invalid email" });
 
     //check  username
 
@@ -27,7 +29,12 @@ export const login = async (req, res) => {
 
     console.log(pass);
 
-    if (pass !== password) return res.status(401).send("password dont exist");
+    if (pass !== password)
+        return res.status(401).send({ message: "password dont exist" });
+
+    const name = await User.getName(uuid);
+
+    console.log(name);
 
     const token = jwt.sign({ userId: uuid, name }, config.jwtKey, {
         expiresIn: "1h",
@@ -41,5 +48,5 @@ export const login = async (req, res) => {
 
     res.cookie("token", token, options);
 
-    res.status(200).send("login succces");
+    res.status(200).send({ message: "login succces" });
 };

@@ -27,6 +27,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const err = await createUser({ name, email, password });
     // console.log(data);
+    console.log(err);
 
     if (err) return null;
 

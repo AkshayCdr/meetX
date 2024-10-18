@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config.js";
 
-const authentication = (req, res, next) => {
+export const authentication = (req, res, next) => {
     const token = req.cookies.token;
 
     if (!token) return res.status(401).send("no token");
@@ -11,4 +11,9 @@ const authentication = (req, res, next) => {
         req.user = usr;
         next();
     });
+};
+
+export const authenticateSocket = (socket, next) => {
+    const token = socket.handshake.auth.token;
+    next();
 };

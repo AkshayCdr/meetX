@@ -7,7 +7,7 @@ export default function Home() {
             <ul>
                 <li>
                     <Link to={"/login"}>Login</Link>
-                    <Link to={"/singup"}>Sign Up</Link>
+                    <Link to={"/signup"}>Sign Up</Link>
                 </li>
             </ul>
         </div>
