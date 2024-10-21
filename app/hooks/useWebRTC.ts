@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../config/socket.client";
-import { peerConnection, channel } from "../../config/peerconnection.client";
+import peerConfiguration from "../../config/peerconnection.client";
+
+export const peerConnection = new RTCPeerConnection(peerConfiguration);
+
+export const channel = peerConnection.createDataChannel("chat");
 
 import {
     HandleCall,
@@ -162,7 +166,6 @@ export const useWebRTC: UseWebRTC = ({
 
 export const webRTC = {
     setStream,
-
     handleCall,
     handleSendMessage,
 };

@@ -9,6 +9,4 @@ const peerConfiguration = {
     ],
 };
 
-export const peerConnection = new RTCPeerConnection(peerConfiguration);
-
-export const channel = peerConnection.createDataChannel("chat");
+export default peerConfiguration;
