@@ -6,7 +6,7 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useWebRTC } from "~/hooks/useWebRTC";
 import { webRTC } from "~/hooks/useWebRTC";
-import { peerConfiguration } from "config/peerconnection.client";
+import { peerConfiguration } from "../../config/peerconnection.client";
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
@@ -14,16 +14,38 @@ export const loader = ({ request, params }: LoaderFunctionArgs) => {
     return params;
 };
 
-type Peers = Array<{
+// type Peers = Array<User>;
+
+type Peers = Map<string, User>;
+
+type User = {
     name: string;
     socketId: string;
     userId: string;
-}>;
+};
 
 const rtcConnections = new Map<string, RTCPeerConnection>();
 const refs = new Map<string, React.RefObject<HTMLVideoElement>>();
 
-const handleOnIceCandidate = () => {};
+const handleOnIceCandidate = (
+    socketId: string,
+    event: RTCPeerConnectionIceEvent,
+    userId: string
+) => {
+    console.log("sending ice candidate ");
+    socket.emit("ice-candidate", event.candidate, socketId, userId);
+};
+
+const handleIceCadidate = (
+    icecandidate: RTCIceCandidate,
+    socketId: string,
+    userId: string
+) => {
+    const peerConnection = rtcConnections.get(userId);
+
+    peerConnection?.addIceCandidate(icecandidate);
+    console.log("set Ice candidate");
+};
 
 const handleOnTrack = (userId: string, event: RTCTrackEvent) => {
     const [data] = event.streams;
@@ -52,7 +74,8 @@ const setPeerConnections = (peers: Peers) => {
                 });
             });
 
-        peerConnection.onicecandidate = () => handleOnIceCandidate();
+        peerConnection.onicecandidate = (event) =>
+            handleOnIceCandidate(peer.socketId, event, peer.userId);
 
         peerConnection.ontrack = (event) => handleOnTrack(userId, event);
     });
@@ -60,7 +83,7 @@ const setPeerConnections = (peers: Peers) => {
 
 export default function videoCall() {
     const roomId = useLoaderData<string>();
-    const [peers, setPeers] = useState<Peers>([]);
+    const [peers, setPeers] = useState<Peers>(new Map());
 
     console.log(peers);
 
@@ -68,28 +91,47 @@ export default function videoCall() {
 
     useEffect(() => {
         //join room
+
         socket.connect();
         socket.emit("join-room", roomId);
 
-        //getting peers
-        socket.on("peers", (peers) => {
+        const handlePeers = (peers: Peers) => {
             console.log("peers are");
             console.log(peers);
             setPeers(peers);
-            setPeerConnections(peers);
-        });
+        };
 
-        socket.on("new-user", (newUserDetails) => {
+        const handleNewUSer = (newUserDetails: User) => {
             console.log("new-user ", JSON.stringify(newUserDetails));
             setPeers((prev) => [...prev, newUserDetails]);
-        });
+        };
 
+        socket.on("peers", handlePeers);
+        socket.on("new-user", handleNewUSer);
+        socket.on("ice-candidate", handleIceCadidate);
+
+        return () => {
+            socket.off("peers", handlePeers);
+            socket.off("new-user", handleNewUSer);
+            socket.off("ice-candidate", handleIceCadidate);
+        };
         //each peer webrtc connection
     }, []);
+
+    useEffect(() => {
+        setPeerConnections(peers);
+    }, [peers]);
 
     return (
         <main className="flex">
             <video ref={localvideo} src=""></video>
+            {/* {peers.map((peer) => (
+                <div>
+                    <h1>{peer.name}</h1>
+                    <video ref={refs.get(peer.userId)} src=""></video>
+                </div>
+            ))} */}
+
             {peers.map((peer) => (
                 <div>
                     <h1>{peer.name}</h1>
