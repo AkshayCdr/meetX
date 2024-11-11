@@ -9,16 +9,25 @@ function setUpSocket(httpServer) {
     io.use(authenticateSocket);
 
     io.on("connection", (socket) => {
+        console.log("user is");
         console.log(socket.user); //username,userId -> userId:{socket,name,roomName}
 
         socket.on("join-room", (data) => {
             const { roomId } = data;
             const { userId, name } = socket.user;
 
-            peers.push({ userId: { socket, name, roomId } });
+            console.log(peers);
+            console.log(socket.user);
+
+            peers.push({ userId: { Socket: socket, name, roomId } });
 
             socket.join(roomId);
-            socket.emit("new-user", peers);
+            socket.to(roomId).emit("new-user", {
+                userId,
+                name,
+                socketId: socket.id,
+                roomId,
+            });
         });
 
         socket.on("offer", (offer, data) => {

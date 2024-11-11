@@ -17,17 +17,18 @@ export default function videoCall() {
 
     const localVideoElement = useRef<HTMLVideoElement>(null);
     const remoteVideoElement = useRef<HTMLVideoElement>(null);
+    const thirdVideoElement = useRef<HTMLVideoElement>(null);
 
     const localAudioElement = useRef<HTMLAudioElement>(null);
     const remoteAudioElement = useRef<HTMLAudioElement>(null);
 
-    // const messageElement = useRef<HTMLInputElement>(null);
+    const messageElement = useRef<HTMLInputElement>(null);
 
-    // const { messages, setMessage } = useWebRTC({
-    //     roomId,
-    //     remoteVideoElement,
-    //     remoteAudioElement,
-    // });
+    const { messages, setMessage } = useWebRTC({
+        roomId,
+        remoteVideoElement,
+        remoteAudioElement,
+    });
 
     return (
         <main className="flex">
@@ -60,7 +61,7 @@ export default function videoCall() {
                     Join call
                 </Button>
             </div>
-            {/* <div className="1/3">
+            <div className="1/3">
                 <div>{messages && messages.map((ele) => <div>{ele}</div>)}</div>
                 <div>
                     <Input
@@ -80,7 +81,7 @@ export default function videoCall() {
                         send Message
                     </Button>
                 </div>
-            </div> */}
+            </div>
         </main>
     );
 }

@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../config/socket.client";
-import peerConfiguration from "../../config/peerconnection.client";
-
-export const peerConnection = new RTCPeerConnection(peerConfiguration);
-
-export const channel = peerConnection.createDataChannel("chat");
+import { channel, peerConnection } from "../../config/peerconnection.client";
 
 import {
     HandleCall,
@@ -152,8 +148,10 @@ export const useWebRTC: UseWebRTC = ({
         socket.on("offer", (offer) => handleOffer({ offer, roomId }));
         socket.on("answer", handleAnswer);
         socket.on("ice-candidate", handleIceCandidate);
+        socket.on("new-user", (res) => console.log(res));
 
         return () => {
+            socket.off("new-user");
             socket.off("join-room");
             socket.off("offer", handleOffer);
             socket.off("answer", handleAnswer);
