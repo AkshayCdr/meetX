@@ -133,14 +133,14 @@ export const useWebRTC: UseWebRTC = ({
                 remoteAudioElement,
             });
 
-        channel.onmessage = (event) => handleMessage({ event, setMessage });
+        // channel.onmessage = (event) => handleMessage({ event, setMessage });
 
-        channel.onopen = () => {
-            if (channel.readyState === "open") channel.send("hai");
-        };
+        // channel.onopen = () => {
+        //     if (channel.readyState === "open") channel.send("hai");
+        // };
 
-        peerConnection.ondatachannel = (event) =>
-            handleRemoteDataChannel({ event, setMessage });
+        // peerConnection.ondatachannel = (event) =>
+        //     handleRemoteDataChannel({ event, setMessage });
 
         socket.connect();
         socket.emit("join-room", roomId);
@@ -148,7 +148,9 @@ export const useWebRTC: UseWebRTC = ({
         socket.on("offer", (offer) => handleOffer({ offer, roomId }));
         socket.on("answer", handleAnswer);
         socket.on("ice-candidate", handleIceCandidate);
-        socket.on("new-user", (res) => console.log(res));
+        socket.on("new-user", (res) => {
+            console.log(res);
+        });
 
         return () => {
             socket.off("new-user");

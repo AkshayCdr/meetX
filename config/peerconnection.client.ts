@@ -1,4 +1,4 @@
-const peerConfiguration = {
+export const peerConfiguration = {
     iceServers: [
         {
             urls: [

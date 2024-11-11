@@ -17,7 +17,10 @@ export const authentication = (req, res, next) => {
 export const authenticateSocket = (socket, next) => {
     const cookies = socket.handshake.headers.cookie;
 
+    console.log("cookies are", JSON.stringify(cookie));
     const data = cookie.parse(cookies);
+
+    console.log("after parsing", JSON.stringify(data));
 
     if (!data) return next(new Error("token doesn't exist"));
 

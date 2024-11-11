@@ -19,15 +19,16 @@ function setUpSocket(httpServer) {
             console.log(peers);
             console.log(socket.user);
 
-            peers.push({ userId: { Socket: socket, name, roomId } });
+            peers.push({ socketId: socket.id, name, userId });
 
             socket.join(roomId);
             socket.to(roomId).emit("new-user", {
                 userId,
                 name,
                 socketId: socket.id,
-                roomId,
             });
+
+            socket.emit("peers", peers);
         });
 
         socket.on("offer", (offer, data) => {

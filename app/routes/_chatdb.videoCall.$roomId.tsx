@@ -1,10 +1,12 @@
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { useRef } from "react";
+import { socket } from "../../config/socket.client";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useWebRTC } from "~/hooks/useWebRTC";
 import { webRTC } from "~/hooks/useWebRTC";
+import { peerConfiguration } from "config/peerconnection.client";
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
     console.log(params);
@@ -12,81 +14,90 @@ export const loader = ({ request, params }: LoaderFunctionArgs) => {
     return params;
 };
 
+type Peers = Array<{
+    name: string;
+    socketId: string;
+    userId: string;
+}>;
+
+const rtcConnections = new Map<string, RTCPeerConnection>();
+const refs = new Map<string, React.RefObject<HTMLVideoElement>>();
+
+const handleOnIceCandidate = () => {};
+
+const handleOnTrack = (userId: string, event: RTCTrackEvent) => {
+    const [data] = event.streams;
+    const element = refs.get(userId);
+    if (element && element.current) {
+        element.current.srcObject = data;
+    }
+};
+
+const setPeerConnections = (peers: Peers) => {
+    peers.forEach((peer) => {
+        if (rtcConnections.has(peer.userId)) return;
+
+        const peerConnection = new RTCPeerConnection(peerConfiguration);
+        const userId = peer.userId;
+        //setting peer for each item
+        rtcConnections.set(userId, peerConnection);
+        //setting ref
+        refs.set(userId, React.createRef<HTMLVideoElement>());
+
+        navigator.mediaDevices
+            .getUserMedia({ video: true })
+            .then((localstream) => {
+                localstream.getTracks().forEach((track) => {
+                    peerConnection.addTrack(track, localstream);
+                });
+            });
+
+        peerConnection.onicecandidate = () => handleOnIceCandidate();
+
+        peerConnection.ontrack = (event) => handleOnTrack(userId, event);
+    });
+};
+
 export default function videoCall() {
     const roomId = useLoaderData<string>();
+    const [peers, setPeers] = useState<Peers>([]);
 
-    const localVideoElement = useRef<HTMLVideoElement>(null);
-    const remoteVideoElement = useRef<HTMLVideoElement>(null);
-    const thirdVideoElement = useRef<HTMLVideoElement>(null);
+    console.log(peers);
 
-    const localAudioElement = useRef<HTMLAudioElement>(null);
-    const remoteAudioElement = useRef<HTMLAudioElement>(null);
+    const localvideo = useRef<HTMLVideoElement>(null);
 
-    const messageElement = useRef<HTMLInputElement>(null);
+    useEffect(() => {
+        //join room
+        socket.connect();
+        socket.emit("join-room", roomId);
 
-    const { messages, setMessage } = useWebRTC({
-        roomId,
-        remoteVideoElement,
-        remoteAudioElement,
-    });
+        //getting peers
+        socket.on("peers", (peers) => {
+            console.log("peers are");
+            console.log(peers);
+            setPeers(peers);
+            setPeerConnections(peers);
+        });
+
+        socket.on("new-user", (newUserDetails) => {
+            console.log("new-user ", JSON.stringify(newUserDetails));
+            setPeers((prev) => [...prev, newUserDetails]);
+        });
+
+        //each peer webrtc connection
+    }, []);
 
     return (
         <main className="flex">
-            <div className="w-2/3">
-                <h1>video call</h1>
-
-                <video ref={localVideoElement} autoPlay></video>
-                <audio ref={localAudioElement} autoPlay controls></audio>
-                <video ref={remoteVideoElement} autoPlay></video>
-                <audio ref={remoteAudioElement} autoPlay></audio>
-
-                <Button
-                    onClick={() =>
-                        webRTC.setStream({
-                            localVideoElement,
-                            localAudioElement,
-                        })
-                    }
-                >
-                    Get video and audio
-                </Button>
-
-                <Button
-                    onClick={() =>
-                        webRTC.handleCall({
-                            roomId,
-                        })
-                    }
-                >
-                    Join call
-                </Button>
-            </div>
-            <div className="1/3">
-                <div>{messages && messages.map((ele) => <div>{ele}</div>)}</div>
+            <video ref={localvideo} src=""></video>
+            {peers.map((peer) => (
                 <div>
-                    <Input
-                        type="text"
-                        ref={messageElement}
-                        placeholder="Type something..."
-                    />
-
-                    <Button
-                        onClick={() =>
-                            webRTC.handleSendMessage({
-                                message: messageElement.current?.value,
-                                setMessage,
-                            })
-                        }
-                    >
-                        send Message
-                    </Button>
+                    <h1>{peer.name}</h1>
+                    <video ref={refs.get(peer.userId)} src=""></video>
                 </div>
-            </div>
+            ))}
         </main>
     );
 }
 
 //for each person create a remote video
-function RemoteVideo() {
-    return <div>Remote video</div>;
-}
