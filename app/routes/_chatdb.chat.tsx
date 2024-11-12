@@ -3,6 +3,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Form, useActionData } from "@remix-run/react";
 
+export const loader = ({ request }: ActionFunctionArgs) => {
+    const cookies = request.headers.get("cookie");
+    console.log(cookies);
+    return null;
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     const formData = await request.formData();
 
@@ -34,7 +40,7 @@ const isValidRoomId = (roomId: string) => {
     return null;
 };
 
-export default function chatDashboard() {
+export default function chat() {
     const actionData = useActionData<typeof action>() as Errors;
 
     return (

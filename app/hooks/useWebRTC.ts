@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { socket } from "../../config/socket.client";
-import { peerConnection, channel } from "../../config/peerconnection.client";
+import { channel, peerConnection } from "../../config/peerconnection.client";
 
 import {
     HandleCall,
@@ -133,14 +133,14 @@ export const useWebRTC: UseWebRTC = ({
                 remoteAudioElement,
             });
 
-        channel.onmessage = (event) => handleMessage({ event, setMessage });
+        // channel.onmessage = (event) => handleMessage({ event, setMessage });
 
-        channel.onopen = () => {
-            if (channel.readyState === "open") channel.send("hai");
-        };
+        // channel.onopen = () => {
+        //     if (channel.readyState === "open") channel.send("hai");
+        // };
 
-        peerConnection.ondatachannel = (event) =>
-            handleRemoteDataChannel({ event, setMessage });
+        // peerConnection.ondatachannel = (event) =>
+        //     handleRemoteDataChannel({ event, setMessage });
 
         socket.connect();
         socket.emit("join-room", roomId);
@@ -148,8 +148,12 @@ export const useWebRTC: UseWebRTC = ({
         socket.on("offer", (offer) => handleOffer({ offer, roomId }));
         socket.on("answer", handleAnswer);
         socket.on("ice-candidate", handleIceCandidate);
+        socket.on("new-user", (res) => {
+            console.log(res);
+        });
 
         return () => {
+            socket.off("new-user");
             socket.off("join-room");
             socket.off("offer", handleOffer);
             socket.off("answer", handleAnswer);
@@ -162,7 +166,6 @@ export const useWebRTC: UseWebRTC = ({
 
 export const webRTC = {
     setStream,
-
     handleCall,
     handleSendMessage,
 };
