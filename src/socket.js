@@ -18,7 +18,7 @@ function setUpSocket(httpServer) {
 
     const peers = new Map();
 
-    io.use(authenticateSocket);
+    // io.use(authenticateSocket);
 
     io.on("connection", (socket) => {
         // console.log("user is");
