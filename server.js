@@ -17,12 +17,12 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
-// app.use(express.static("build/client"));
+app.use(express.static("build/client"));
 
 app.use("/user", userRouter);
 
 // and your app is "just a request handler"
-// app.all("*", createRequestHandler({ build }));
+app.all("*", createRequestHandler({ build }));
 
 const httpServer = createServer(app);
 
