@@ -7,6 +7,7 @@ function setUpSocket(httpServer) {
             origin: [
                 "http://localhost:5173",
                 "https://meetx-dwcw.onrender.com",
+                "http://localhost:3000",
             ],
             credentials: true,
         },
