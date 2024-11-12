@@ -8,7 +8,10 @@ export const authentication = (req, res, next) => {
     if (!token) return res.status(401).send("no token");
 
     jwt.verify(token, config.jwtKey, (err, usr) => {
-        if (err) return res.status(401).send("invalid token");
+        if (err) {
+            console.log("invalid token front backend");
+            return res.status(401).send("invalid token");
+        }
         req.user = usr;
         next();
     });
@@ -29,7 +32,10 @@ export const authenticateSocket = (socket, next) => {
     console.log(token);
 
     jwt.verify(token, config.jwtKey, (err, usr) => {
-        if (err) return next(new Error("invalid token"));
+        if (err) {
+            console.log("invlid token from socket");
+            return next(new Error("invalid token"));
+        }
         socket.user = usr;
     });
 
