@@ -44,7 +44,7 @@ const handleOnIceCandidate = (
     // console.log("not ice candidate to emit ");
 };
 
-const handleIceCadidate = ({
+const handleIceCadidate = async ({
     iceCandidate,
     userId,
 }: {
@@ -53,7 +53,7 @@ const handleIceCadidate = ({
 }) => {
     const peerConnection = rtcConnections.get(userId);
 
-    peerConnection?.addIceCandidate(iceCandidate);
+    await peerConnection?.addIceCandidate(iceCandidate);
     // console.log("set Ice candidate");
 };
 
@@ -141,18 +141,19 @@ export default function videoCall() {
             await setPeerConnections(map, roomId);
         };
 
-        const handleNewUSer = (newUserDetails: User) => {
+        const handleNewUSer = async (newUserDetails: User) => {
             setPeers((prev) => {
                 const updatedPeers = new Map(prev).set(
                     newUserDetails.userId,
                     newUserDetails
                 );
+                // Call setPeerConnections inside the callback to ensure we use the latest peers
                 setPeerConnections(updatedPeers, roomId);
                 return updatedPeers;
             });
         };
 
-        const handleAnswer = ({
+        const handleAnswer = async ({
             userId,
             answer,
         }: {
@@ -164,14 +165,12 @@ export default function videoCall() {
             const peerConnection = rtcConnections.get(userId);
             if (!peerConnection) return;
 
-            peerConnection
-                .setRemoteDescription(new RTCSessionDescription(answer))
-                .then(() => {
-                    console.log("set remote answer");
-                });
+            await peerConnection.setRemoteDescription(
+                new RTCSessionDescription(answer)
+            );
         };
 
-        const handleOffer = ({
+        const handleOffer = async ({
             offer,
             userId,
         }: {
@@ -180,16 +179,14 @@ export default function videoCall() {
         }) => {
             const peerConnection = rtcConnections.get(userId);
             if (!peerConnection) return;
-            peerConnection
-                .setRemoteDescription(new RTCSessionDescription(offer))
-                .then(() => peerConnection.createAnswer())
-                .then((answer) => {
-                    peerConnection.setLocalDescription(answer);
-                    return answer;
-                })
-                .then((answer) => {
-                    socket.emit("answer", { userId, roomId, answer });
-                });
+            await peerConnection.setRemoteDescription(
+                new RTCSessionDescription(offer)
+            );
+            const answer = await peerConnection.createAnswer();
+
+            await peerConnection.setLocalDescription(answer);
+
+            socket.emit("answer", { userId, roomId, answer });
         };
 
         socket.on("peers", handlePeers);
@@ -203,6 +200,8 @@ export default function videoCall() {
             socket.off("peers", handlePeers);
             socket.off("new-user", handleNewUSer);
             socket.off("ice-candidate", handleIceCadidate);
+            socket.off("offer", handleOffer);
+            socket.off("answer", handleAnswer);
         };
         //each peer webrtc connection
     }, []);
