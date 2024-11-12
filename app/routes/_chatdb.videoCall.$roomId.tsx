@@ -33,7 +33,11 @@ const handleOnIceCandidate = (
     userId: string
 ) => {
     console.log("sending ice candidate ");
-    socket.emit("ice-candidate", event.candidate, socketId, userId);
+    if (event.candidate) {
+        debugger;
+        return socket.emit("ice-candidate", event.candidate, socketId, userId);
+    }
+    console.log("not ice candidate to emit ");
 };
 
 const handleIceCadidate = (
@@ -55,7 +59,25 @@ const handleOnTrack = (userId: string, event: RTCTrackEvent) => {
     }
 };
 
-const setPeerConnections = (peers: Peers) => {
+const createOfferAndSend = (
+    peerconnection: RTCPeerConnection,
+    userId: string
+) => {
+    peerconnection
+        .createOffer()
+        .then((offer) => {
+            peerconnection.setLocalDescription(offer);
+            return offer;
+        })
+        .then((offer) => {
+            socket.emit("offer", offer, userId);
+        });
+};
+
+const setPeerConnections = (peers: Peers, roomId: string) => {
+    if (peers.size === 0) return;
+    console.log("inside peers");
+    // debugger;
     peers.forEach((peer) => {
         if (rtcConnections.has(peer.userId)) return;
 
@@ -74,10 +96,16 @@ const setPeerConnections = (peers: Peers) => {
                 });
             });
 
-        peerConnection.onicecandidate = (event) =>
-            handleOnIceCandidate(peer.socketId, event, peer.userId);
+        peerConnection.onicecandidate = (event) => {
+            debugger;
+            if (event.candidate)
+                handleOnIceCandidate(peer.socketId, event, peer.userId);
+        };
 
         peerConnection.ontrack = (event) => handleOnTrack(userId, event);
+
+        //create offer // emit offer
+        createOfferAndSend(peerConnection, peer.userId);
     });
 };
 
@@ -92,23 +120,37 @@ export default function videoCall() {
     useEffect(() => {
         //join room
 
-        socket.connect();
+        // socket.connect();
         socket.emit("join-room", roomId);
 
-        const handlePeers = (peers: Peers) => {
-            console.log("peers are");
-            console.log(peers);
-            setPeers(peers);
+        const handlePeers = (peers: string) => {
+            // console.log("peers are");
+            // console.log(peers);
+            const data = JSON.parse(peers);
+
+            // console.log(data);
+
+            const map: Peers = new Map(data);
+
+            setPeers(map);
+            setPeerConnections(map, roomId);
         };
 
         const handleNewUSer = (newUserDetails: User) => {
-            console.log("new-user ", JSON.stringify(newUserDetails));
-            setPeers((prev) => [...prev, newUserDetails]);
+            setPeers((prev) => {
+                const updatedPeers = new Map(prev).set(
+                    newUserDetails.userId,
+                    newUserDetails
+                );
+                setPeerConnections(updatedPeers);
+                return updatedPeers;
+            });
         };
 
         socket.on("peers", handlePeers);
         socket.on("new-user", handleNewUSer);
         socket.on("ice-candidate", handleIceCadidate);
+        //get offer set answer
 
         return () => {
             socket.off("peers", handlePeers);
@@ -118,26 +160,17 @@ export default function videoCall() {
         //each peer webrtc connection
     }, []);
 
-    useEffect(() => {
-        setPeerConnections(peers);
-    }, [peers]);
-
     return (
         <main className="flex">
             <video ref={localvideo} src=""></video>
-            {/* {peers.map((peer) => (
-                <div>
-                    <h1>{peer.name}</h1>
-                    <video ref={refs.get(peer.userId)} src=""></video>
-                </div>
-            ))} */}
 
-            {peers.map((peer) => (
-                <div>
-                    <h1>{peer.name}</h1>
-                    <video ref={refs.get(peer.userId)} src=""></video>
-                </div>
-            ))}
+            {peers.size > 0 &&
+                [...peers.entries()].map(([id, user]) => (
+                    <div key={id}>
+                        <h1>{user.name}</h1>
+                        <video ref={refs.get(user.userId)} src=""></video>
+                    </div>
+                ))}
         </main>
     );
 }

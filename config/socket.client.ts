@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
 export const socket = io("ws://localhost:3000", {
-    autoConnect: false,
+    // autoConnect: false,
     withCredentials: true,
 });

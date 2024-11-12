@@ -25,7 +25,10 @@ function setUpSocket(httpServer) {
 
             peers.set(userId, { socketId: socket.id, name, userId });
 
-            console.log("peers after setting", JSON.stringify(peers));
+            console.log(
+                "peers after setting",
+                JSON.stringify(Array.from(peers.entries()))
+            );
 
             socket.join(roomId);
             socket.to(roomId).emit("new-user", {
@@ -34,11 +37,11 @@ function setUpSocket(httpServer) {
                 socketId: socket.id,
             });
 
-            socket.emit("peers", peers);
+            socket.emit("peers", JSON.stringify(Array.from(peers.entries())));
         });
 
         socket.on("offer", (offer, data) => {
-            const { roomId } = data;
+            const { userId } = data;
             socket.to(roomId).emit("offer", offer);
         });
 
