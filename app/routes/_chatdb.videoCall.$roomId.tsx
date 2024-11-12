@@ -9,7 +9,7 @@ import { webRTC } from "~/hooks/useWebRTC";
 import { peerConfiguration } from "../../config/peerconnection.client";
 
 export const loader = ({ request, params }: LoaderFunctionArgs) => {
-    console.log(params);
+    // console.log(params);
 
     return params;
 };
@@ -28,27 +28,33 @@ const rtcConnections = new Map<string, RTCPeerConnection>();
 const refs = new Map<string, React.RefObject<HTMLVideoElement>>();
 
 const handleOnIceCandidate = (
-    socketId: string,
     event: RTCPeerConnectionIceEvent,
-    userId: string
+    userId: string,
+    roomId: string
 ) => {
     console.log("sending ice candidate ");
     if (event.candidate) {
         debugger;
-        return socket.emit("ice-candidate", event.candidate, socketId, userId);
+        return socket.emit("ice-candidate", {
+            iceCandidate: event.candidate,
+            userId,
+            roomId,
+        });
     }
-    console.log("not ice candidate to emit ");
+    // console.log("not ice candidate to emit ");
 };
 
-const handleIceCadidate = (
-    icecandidate: RTCIceCandidate,
-    socketId: string,
-    userId: string
-) => {
+const handleIceCadidate = ({
+    iceCandidate,
+    userId,
+}: {
+    iceCandidate: RTCIceCandidate;
+    userId: string;
+}) => {
     const peerConnection = rtcConnections.get(userId);
 
-    peerConnection?.addIceCandidate(icecandidate);
-    console.log("set Ice candidate");
+    peerConnection?.addIceCandidate(iceCandidate);
+    // console.log("set Ice candidate");
 };
 
 const handleOnTrack = (userId: string, event: RTCTrackEvent) => {
@@ -59,26 +65,24 @@ const handleOnTrack = (userId: string, event: RTCTrackEvent) => {
     }
 };
 
-const createOfferAndSend = (
+const createOfferAndSend = async (
     peerconnection: RTCPeerConnection,
-    userId: string
+    userId: string,
+    roomId: string
 ) => {
-    peerconnection
-        .createOffer()
-        .then((offer) => {
-            peerconnection.setLocalDescription(offer);
-            return offer;
-        })
-        .then((offer) => {
-            socket.emit("offer", offer, userId);
-        });
+    const offer = await peerconnection.createOffer();
+
+    await peerconnection.setLocalDescription(offer);
+
+    if (!roomId) return;
+    socket.emit("offer", { offer, userId, roomId });
 };
 
-const setPeerConnections = (peers: Peers, roomId: string) => {
+const setPeerConnections = async (peers: Peers, roomId: string) => {
     if (peers.size === 0) return;
-    console.log("inside peers");
+    // onsole.log("inside peers");
     // debugger;
-    peers.forEach((peer) => {
+    peers.forEach(async (peer) => {
         if (rtcConnections.has(peer.userId)) return;
 
         const peerConnection = new RTCPeerConnection(peerConfiguration);
@@ -99,21 +103,22 @@ const setPeerConnections = (peers: Peers, roomId: string) => {
         peerConnection.onicecandidate = (event) => {
             debugger;
             if (event.candidate)
-                handleOnIceCandidate(peer.socketId, event, peer.userId);
+                handleOnIceCandidate(event, peer.userId, roomId);
         };
 
         peerConnection.ontrack = (event) => handleOnTrack(userId, event);
 
         //create offer // emit offer
-        createOfferAndSend(peerConnection, peer.userId);
+        await createOfferAndSend(peerConnection, peer.userId, roomId);
     });
 };
 
 export default function videoCall() {
-    const roomId = useLoaderData<string>();
+    const { roomId } = useLoaderData<{ roomId: string }>();
     const [peers, setPeers] = useState<Peers>(new Map());
 
-    console.log(peers);
+    // console.log(peers);
+    console.log(roomId);
 
     const localvideo = useRef<HTMLVideoElement>(null);
 
@@ -121,9 +126,9 @@ export default function videoCall() {
         //join room
 
         // socket.connect();
-        socket.emit("join-room", roomId);
+        socket.emit("join-room", { roomId });
 
-        const handlePeers = (peers: string) => {
+        const handlePeers = async (peers: string) => {
             // console.log("peers are");
             // console.log(peers);
             const data = JSON.parse(peers);
@@ -133,7 +138,7 @@ export default function videoCall() {
             const map: Peers = new Map(data);
 
             setPeers(map);
-            setPeerConnections(map, roomId);
+            await setPeerConnections(map, roomId);
         };
 
         const handleNewUSer = (newUserDetails: User) => {
@@ -142,14 +147,56 @@ export default function videoCall() {
                     newUserDetails.userId,
                     newUserDetails
                 );
-                setPeerConnections(updatedPeers);
+                setPeerConnections(updatedPeers, roomId);
                 return updatedPeers;
             });
+        };
+
+        const handleAnswer = ({
+            userId,
+            answer,
+        }: {
+            userId: string;
+            answer: RTCSessionDescriptionInit;
+        }) => {
+            if (!answer) return;
+
+            const peerConnection = rtcConnections.get(userId);
+            if (!peerConnection) return;
+
+            peerConnection
+                .setRemoteDescription(new RTCSessionDescription(answer))
+                .then(() => {
+                    console.log("set remote answer");
+                });
+        };
+
+        const handleOffer = ({
+            offer,
+            userId,
+        }: {
+            offer: RTCSessionDescriptionInit;
+            userId: string;
+        }) => {
+            const peerConnection = rtcConnections.get(userId);
+            if (!peerConnection) return;
+            peerConnection
+                .setRemoteDescription(new RTCSessionDescription(offer))
+                .then(() => peerConnection.createAnswer())
+                .then((answer) => {
+                    peerConnection.setLocalDescription(answer);
+                    return answer;
+                })
+                .then((answer) => {
+                    socket.emit("answer", { userId, roomId, answer });
+                });
         };
 
         socket.on("peers", handlePeers);
         socket.on("new-user", handleNewUSer);
         socket.on("ice-candidate", handleIceCadidate);
+        socket.on("offer", handleOffer);
+        socket.on("answer", handleAnswer);
         //get offer set answer
 
         return () => {
@@ -168,7 +215,12 @@ export default function videoCall() {
                 [...peers.entries()].map(([id, user]) => (
                     <div key={id}>
                         <h1>{user.name}</h1>
-                        <video ref={refs.get(user.userId)} src=""></video>
+                        <video
+                            ref={refs.get(user.userId)}
+                            src=""
+                            autoPlay
+                            playsInline
+                        ></video>
                     </div>
                 ))}
         </main>
