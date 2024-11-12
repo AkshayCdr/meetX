@@ -34,7 +34,6 @@ const handleOnIceCandidate = (
 ) => {
     console.log("sending ice candidate ");
     if (event.candidate) {
-        debugger;
         return socket.emit("ice-candidate", {
             iceCandidate: event.candidate,
             userId,
@@ -53,7 +52,7 @@ const handleIceCadidate = async ({
 }) => {
     const peerConnection = rtcConnections.get(userId);
 
-    await peerConnection?.addIceCandidate(iceCandidate);
+    await peerConnection?.addIceCandidate(new RTCIceCandidate(iceCandidate));
     // console.log("set Ice candidate");
 };
 
@@ -80,37 +79,40 @@ const createOfferAndSend = async (
 
 const setPeerConnections = async (peers: Peers, roomId: string) => {
     if (peers.size === 0) return;
-    // onsole.log("inside peers");
-    // debugger;
-    peers.forEach(async (peer) => {
-        if (rtcConnections.has(peer.userId)) return;
 
-        const peerConnection = new RTCPeerConnection(peerConfiguration);
-        const userId = peer.userId;
-        //setting peer for each item
-        rtcConnections.set(userId, peerConnection);
-        //setting ref
-        refs.set(userId, React.createRef<HTMLVideoElement>());
+    await Promise.all(
+        [...peers.entries()].map(async ([_, peer]) => {
+            if (rtcConnections.has(peer.userId)) return;
 
-        navigator.mediaDevices
-            .getUserMedia({ video: true })
-            .then((localstream) => {
+            const peerConnection = new RTCPeerConnection(peerConfiguration);
+            const userId = peer.userId;
+
+            rtcConnections.set(userId, peerConnection);
+            refs.set(userId, React.createRef<HTMLVideoElement>());
+
+            try {
+                const localstream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                });
                 localstream.getTracks().forEach((track) => {
                     peerConnection.addTrack(track, localstream);
                 });
-            });
+            } catch (err) {
+                console.error("Error getting user media:", err);
+                return;
+            }
 
-        peerConnection.onicecandidate = (event) => {
-            debugger;
-            if (event.candidate)
-                handleOnIceCandidate(event, peer.userId, roomId);
-        };
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    handleOnIceCandidate(event, peer.userId, roomId);
+                }
+            };
 
-        peerConnection.ontrack = (event) => handleOnTrack(userId, event);
+            peerConnection.ontrack = (event) => handleOnTrack(userId, event);
 
-        //create offer // emit offer
-        await createOfferAndSend(peerConnection, peer.userId, roomId);
-    });
+            await createOfferAndSend(peerConnection, peer.userId, roomId);
+        })
+    );
 };
 
 export default function videoCall() {
@@ -121,6 +123,19 @@ export default function videoCall() {
     console.log(roomId);
 
     const localvideo = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        navigator.mediaDevices
+            .getUserMedia({
+                video: true,
+            })
+            .then((stream) => {
+                if (localvideo.current) {
+                    localvideo.current.srcObject = stream;
+                }
+            })
+            .catch((err) => console.error(err));
+    }, []);
 
     useEffect(() => {
         //join room
@@ -208,7 +223,7 @@ export default function videoCall() {
 
     return (
         <main className="flex">
-            <video ref={localvideo} src=""></video>
+            <video ref={localvideo} src="" autoPlay playsInline></video>
 
             {peers.size > 0 &&
                 [...peers.entries()].map(([id, user]) => (

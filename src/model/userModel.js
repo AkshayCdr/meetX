@@ -1,8 +1,9 @@
 const generateUniqueId = () => Math.floor(10000000 + Math.random() * 90000000);
 
 import { createClient } from "redis";
+import { config } from "../config.js";
 
-const client = createClient();
+const client = createClient({ url: config.redis_url });
 
 client.on("error", (err) => console.log("redis client eroor", err));
 

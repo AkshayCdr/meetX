@@ -1,5 +1,8 @@
 import { useDebugValue } from "react";
 
+// const url = "http://192.168.0.129:3000";
+const url = "http://localhost:3000";
+
 type UserDetailsArgs = {
     email: string;
     password: string;
@@ -11,7 +14,7 @@ type Authenticate = (
 ) => Promise<[null | Response, null | Error]>;
 
 export const authenticate: Authenticate = async (userData) => {
-    const res = await fetch("http://localhost:3000/user/login", {
+    const res = await fetch(url + "/user/login", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -28,7 +31,7 @@ export const authenticate: Authenticate = async (userData) => {
 type CreateUser = (userDetails: UserDetailsArgs) => Promise<Error | null>;
 
 export const createUser: CreateUser = async (userDetails) => {
-    const reponse = await fetch("http://localhost:3000/user", {
+    const reponse = await fetch(url + "/user", {
         method: "POST",
         credentials: "include",
         headers: {
