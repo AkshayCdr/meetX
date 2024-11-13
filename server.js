@@ -9,12 +9,16 @@ import * as build from "./build/server/index.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-// const corsOptions = {
-//     origin: "http://localhost:5173",
-// };
+const corsOptions = {
+    origin: [
+        "http://localhost:5173",
+        "https://meetx-dwcw.onrender.com",
+        "http://localhost:3000",
+    ],
+};
 const app = express();
 
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.static("build/client"));

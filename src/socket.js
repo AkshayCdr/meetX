@@ -1,20 +1,22 @@
 import { Server } from "socket.io";
 import { authenticateSocket } from "./middlewares/authentication.js";
 
-// {
-//     cors: {
-//         origin: [
-//             "http://localhost:5173",
-//             "https://meetx-dwcw.onrender.com",
-//             "http://localhost:3000",
-//         ],
-//         methods: ["GET", "POST"],
-//         credentials: true,
-//     },
-// }
-
 function setUpSocket(httpServer) {
-    const io = new Server(httpServer);
+    const io = new Server(
+        httpServer,
+
+        {
+            cors: {
+                origin: [
+                    "http://localhost:5173",
+                    "https://meetx-dwcw.onrender.com",
+                    "http://localhost:3000",
+                ],
+                methods: ["GET", "POST"],
+                credentials: true,
+            },
+        }
+    );
 
     const peers = new Map();
 
