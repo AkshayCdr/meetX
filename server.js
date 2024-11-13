@@ -10,11 +10,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 
 const corsOptions = {
-    origin: [
-        "http://localhost:5173",
-        "https://meetx-dwcw.onrender.com",
-        "http://localhost:3000",
-    ],
+    origin: "http://localhost:5173",
 };
 const app = express();
 
